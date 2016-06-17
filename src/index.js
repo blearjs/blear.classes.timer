@@ -10,19 +10,23 @@ var time = require('blear.utils.time');
 var object = require('blear.utils.object');
 var Events = require('blear.classes.events');
 
-
+var STATE_READY = 0;
+var STATE_STARTED = 1;
+var STATE_RESTARTED = 2;
+var STATE_PAUSED = 3;
+var STATE_RESUMED = 4;
+var STATE_DESTROYED = 5;
 var defaults = {
     interval: 1000,
     count: 60000
 };
-
-
 var Timer = Events.extend({
     constructor: function (options) {
         var the = this;
 
         the[_options] = object.assign({}, defaults, options);
-        the[_remain] = the[_options].count;
+        the[_count] = the[_options].count;
+        the.state = STATE_READY;
         Timer.parent(the);
     },
 
@@ -33,24 +37,13 @@ var Timer = Events.extend({
      */
     start: function () {
         var the = this;
-        var options = the[_options];
 
         if (the[_timer]) {
             return the;
         }
 
-        var timer = the[_timer] = time.setInterval(function () {
-            var elapsedTime = timer.elapsedTime;
-            var remainTime = the[_remain] - elapsedTime;
-
-            if (remainTime < options.interval) {
-                the.stop();
-                return;
-            }
-
-            the[_remain] = remainTime;
-            the.emit('change', remainTime, elapsedTime);
-        }, options.interval, true);
+        the.state = STATE_STARTED;
+        the[_start]();
 
         return the;
     },
@@ -67,8 +60,9 @@ var Timer = Events.extend({
             return the;
         }
 
-        the[_remain] = the[_options].count;
-        the.start();
+        the[_count] = the[_options].count;
+        the.state = STATE_RESTARTED;
+        the[_start]();
         return the;
     },
 
@@ -79,8 +73,15 @@ var Timer = Events.extend({
      */
     pause: function () {
         var the = this;
+
+        if (!the[_timer]) {
+            return the;
+        }
+
         time.clearInterval(the[_timer]);
+        the[_count] -= the[_timer].times * the[_options].interval;
         the[_timer] = null;
+        the.state = STATE_PAUSED;
         return the;
     },
 
@@ -90,7 +91,11 @@ var Timer = Events.extend({
      * @returns {*|Timer}
      */
     resume: function () {
-        return this.start();
+        var the = this;
+
+        the.state = STATE_RESUMED;
+        the[_start]();
+        return the;
     },
 
 
@@ -105,16 +110,68 @@ var Timer = Events.extend({
             return the;
         }
 
-        the[_remain] = 0;
+        the[_count] = 0;
         the.emit('change', 0, the[_options].count);
+        the.emit('stop');
         time.clearInterval(the[_timer]);
         the[_timer] = null;
+        the.state = STATE_READY;
         return the;
+    },
+
+
+    /**
+     * 设置总时间
+     * @param count
+     * @returns {Timer}
+     */
+    setCount: function (count) {
+        this[_count] = count;
+        return this;
+    },
+
+
+    /**
+     * 重置计时
+     * @returns {Timer}
+     */
+    reset: function () {
+        return this.setCount(this[_options].count);
+    },
+
+
+    /**
+     * 销毁实例
+     */
+    destroy: function () {
+        var the = this;
+
+        the.stop();
+        the.state = STATE_DESTROYED;
+        Timer.parent.destroy(the);
     }
 });
 var _options = Timer.sole();
 var _timer = Timer.sole();
-var _remain = Timer.sole();
+var _count = Timer.sole();
+var _start = Timer.sole();
+var pro = Timer.prototype;
+
+
+pro[_start] = function () {
+    var the = this;
+    var timer = the[_timer] = time.setInterval(function () {
+        var elapsedTime = timer.elapsedTime;
+        var remainTime = the[_count] - elapsedTime;
+
+        if (remainTime < 0) {
+            the.stop();
+            return;
+        }
+
+        the.emit('change', remainTime, elapsedTime);
+    }, the[_options].interval, true);
+};
 
 
 Timer.defaults = defaults;

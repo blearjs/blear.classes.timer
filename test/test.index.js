@@ -7,11 +7,22 @@
 
 'use strict';
 
-var index = require('../src/index.js');
+var Timer = require('../src/index.js');
 
 describe('测试文件', function () {
-    it('exports', function (done) {
-        expect(index).toEqual('index');
-        done();
+    it('#start', function (done) {
+        var timer = new Timer({
+            count: 1000
+        });
+        var times = 0;
+        
+        timer.start();
+        timer.on('change', function () {
+            times++;
+        });
+        timer.on('stop', function () {
+            expect(times).toBeGreaterThan(0);
+            done();
+        });
     });
 });
