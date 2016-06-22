@@ -8,18 +8,30 @@
 'use strict';
 
 var Timer = require('../src/index');
-var timerEl = document.getElementById('timer1');
-var timer = window.timer = new Timer({
+var timer1El = document.getElementById('timer1');
+var timer2El = document.getElementById('timer2');
+var timer1 = window.timer1 = new Timer({
     count: 10000
 });
+var timer2 = window.timer2 = new Timer({
+    count: -1
+});
 
-timerEl.onclick = function () {
-    timerEl.disabled = true;
-    timer.start();
-    timer.on('change', function (remainTime, elapsedTime) {
-        timerEl.innerHTML = '剩余 ' + Math.ceil(remainTime / 1000) + 's';
+timer1El.onclick = function () {
+    timer1El.disabled = true;
+    timer1.start();
+    timer1.on('change', function (remainTime, elapsedTime) {
+        timer1El.innerHTML = '剩余 ' + Math.ceil(remainTime / 1000) + 's';
     }).on('stop', function () {
-        timerEl.disabled = false;
-        timer.reset();
+        timer1El.disabled = false;
+        timer1.reset();
+    });
+};
+
+timer2El.onclick = function () {
+    timer2El.disabled = true;
+    timer2.start();
+    timer2.on('change', function (remainTime, elapsedTime) {
+        timer2El.innerHTML = '已过 ' + Math.floor(elapsedTime / 1000) + 's';
     });
 };

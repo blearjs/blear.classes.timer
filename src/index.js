@@ -4,10 +4,12 @@
  * @create 2016年06月04日14:09:36
  */
 
-
+'use strict';
 
 var time = require('blear.utils.time');
 var object = require('blear.utils.object');
+var typeis = require('blear.utils.typeis');
+var date = require('blear.utils.date');
 var Events = require('blear.classes.events');
 
 var STATE_READY = 0;
@@ -15,7 +17,16 @@ var STATE_STARTED = 1;
 var STATE_PAUSED = 3;
 var STATE_DESTROYED = 5;
 var defaults = {
+    /**
+     * 时间间隔
+     * @type Number
+     */
     interval: 1000,
+
+    /**
+     * 时间总数，-1 为无限计时
+     * @type Number
+     */
     count: 60000
 };
 var Timer = Events.extend({
@@ -23,8 +34,13 @@ var Timer = Events.extend({
     constructor: function (options) {
         var the = this;
 
-        the[_options] = object.assign({}, defaults, options);
-        the[_count] = the[_options].count;
+        options = the[_options] = object.assign({}, defaults, options);
+
+        if (typeis.Date(options.count)) {
+            options.count = options.count.getTime() - date.now();
+        }
+
+        the[_count] = options.count;
         the.state = STATE_READY;
         Timer.parent(the);
     },
@@ -43,7 +59,11 @@ var Timer = Events.extend({
 
         var timer = the[_timer] = time.setInterval(function () {
             var elapsedTime = timer.elapsedTime;
-            var remainTime = the[_count] - elapsedTime;
+            var remainTime = 0;
+
+            if (the[_options].count !== -1) {
+                remainTime = the[_count] - elapsedTime;
+            }
 
             if (remainTime < 0) {
                 the.stop();
@@ -114,8 +134,9 @@ var Timer = Events.extend({
      * @returns {Timer}
      */
     setCount: function (count) {
-        this[_count] = count;
-        return this;
+        var the = this;
+        the[_count] = the[_options].count = count;
+        return the;
     },
 
 
