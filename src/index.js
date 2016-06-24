@@ -135,6 +135,11 @@ var Timer = Events.extend({
      */
     setCount: function (count) {
         var the = this;
+
+        if (typeis.Date(count)) {
+            count = count.getTime() - date.now();
+        }
+        
         the[_count] = the[_options].count = count;
         return the;
     },
